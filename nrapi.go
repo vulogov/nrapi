@@ -1,6 +1,7 @@
 package nrapi
 
 import (
+  "fmt"
   "sync"
   "os"
   "errors"
@@ -17,6 +18,9 @@ type NRAPI struct {
   ApplicationName     string
   MetricURL           string
   EventURL            string
+  LogURL              string
+  TraceURL            string
+  Logfilename         string
   EvtPipe             chan *gabs.Container
   MetricPipe          chan *gabs.Container
   TracePipe           chan *gabs.Container
@@ -24,6 +28,8 @@ type NRAPI struct {
   Wg                  sync.WaitGroup
   MetricDelay         int
   EventDelay          int
+  LogDelay            int
+  TraceDelay          int
   CanSubmit           bool
 }
 
@@ -51,18 +57,43 @@ func New(account string, license_key string) *NRAPI {
   nr.CanSubmit     = true
   nr.MetricDelay   = 60
   nr.EventDelay    = 5
+  nr.LogDelay      = 5
+  nr.TraceDelay    = 5
   nr.MetricURL     = "https://metric-api.newrelic.com/metric/v1"
   nr.EventURL      = fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%v/events", account)
-  mlog.Start(mlog.LevelTrace, "")
-  mlog.Info("NRAPI instance created")
+  nr.LogURL        = "https://log-api.newrelic.com/log/v1"
+  nr.TraceURL      = "https://trace-api.newrelic.com/trace/v1"
+  nr.SetConsoleLog()
   go NRMetricDaemon(nr)
   go NREventDaemon(nr)
+  go NRLogDaemon(nr)
+  go NRTraceDaemon(nr)
   return nr
 }
 
 func (nr *NRAPI) SetApplication(id string, name string) {
   nr.ApplicationID = id
   nr.ApplicationName = name
+}
+
+func (nr *NRAPI) SetConsoleLog() {
+  mlog.Stop()
+  mlog.Start(mlog.LevelTrace, "")
+}
+
+func (nr *NRAPI) DisableLog() {
+  mlog.Stop()
+  mlog.Start(mlog.LevelTrace, "/dev/null")
+}
+
+func (nr *NRAPI) SetLoggingToFile(name string) {
+  mlog.Stop()
+  mlog.Start(mlog.LevelTrace, name)
+}
+
+func (nr *NRAPI) SetLoggingToDefaultFile() {
+  mlog.Stop()
+  mlog.Start(mlog.LevelTrace, fmt.Sprintf("nrapi-%v.log", nr.NRAccount))
 }
 
 func (nr *NRAPI) Close() {

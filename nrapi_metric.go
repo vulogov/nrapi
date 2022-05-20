@@ -1,7 +1,6 @@
 package nrapi
 
 import (
-  "fmt"
   "bytes"
   "time"
   "runtime"
@@ -71,11 +70,11 @@ func NRMetricSendPayload(nr *NRAPI, payload *gabs.Container) error {
   req.Header.Set("Content-Encoding", "gzip")
   client := &http.Client{}
   resp, err := client.Do(req)
-  defer resp.Body.Close()
   if err != nil {
     mlog.Trace("MetricAPI send error: %v", err)
     return err
   }
+  defer resp.Body.Close()
   out, err := ioutil.ReadAll(resp.Body)
   if err != nil {
     mlog.Trace("MetricAPI resp error: %v", err)

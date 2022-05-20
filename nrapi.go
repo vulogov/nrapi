@@ -68,6 +68,7 @@ func New(account string, license_key string) *NRAPI {
   go NREventDaemon(nr)
   go NRLogDaemon(nr)
   go NRTraceDaemon(nr)
+  nr.DisableLog()
   return nr
 }
 
@@ -83,7 +84,6 @@ func (nr *NRAPI) SetConsoleLog() {
 
 func (nr *NRAPI) DisableLog() {
   mlog.Stop()
-  mlog.Start(mlog.LevelTrace, "/dev/null")
 }
 
 func (nr *NRAPI) SetLoggingToFile(name string) {

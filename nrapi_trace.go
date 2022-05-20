@@ -95,11 +95,31 @@ func (txn *NRTRANSACTION) Segment(name string, attributes ...map[string]interfac
   return seg
 }
 
-func (seg *NRSEGMENT) SetError(msg string) {
-  seg.ErrorMsg = msg
+func (txn *NRTRANSACTION) SQLQuerySegment(query string, attributes ...map[string]interface{}) *NRSEGMENT {
+  seg := txn.Segment(query, attributes...)
+  seg.Header.Set(query, "attributes", "db.query")
+  return seg
 }
 
-func (seg *NRSEGMENT) End() {
+func (txn *NRTRANSACTION) HttpSegment(name string, attributes ...map[string]interface{}) *NRSEGMENT {
+  seg := txn.Segment(name, attributes...)
+  return seg
+}
+
+func (seg *NRSEGMENT) HttpEnd(req *http.Request) {
+  pkt := seg.PrepareEnd()
+  pkt.Set(req.Method, "attributes", "http.method")
+  pkt.Set(req.URL.RawQuery, "attributes", "http.url")
+  pkt.Set(req.Proto, "attributes", "http.proto")
+  pkt.Set(req.ContentLength, "attributes", "http.size")
+  pkt.Set(req.Host, "attributes", "http.host")
+  pkt.Set(req.Response.Status, "attributes", "http.status")
+  pkt.Set(req.Response.StatusCode, "attributes", "http.status.code")
+  pkt.Set(req.Response.ContentLength, "attributes", "http.contentlength")
+  seg.CommitEnd(pkt)
+}
+
+func (seg *NRSEGMENT) PrepareEnd() *gabs.Container {
   stamp := time.Now().UnixNano() / int64(time.Millisecond)
   pkt := gabs.New()
   pkt.Merge(seg.Header)
@@ -113,8 +133,21 @@ func (seg *NRSEGMENT) End() {
   if len(seg.ErrorMsg) > 0 {
     pkt.Set(seg.ErrorMsg, "attributes", "error.message")
   }
+  return pkt
+}
+
+func (seg *NRSEGMENT) CommitEnd(pkt *gabs.Container) {
   seg.Ended = true
   seg.Txn.Nr.TracePipe <- pkt
+}
+
+func (seg *NRSEGMENT) End() {
+  pkt := seg.PrepareEnd()
+  seg.CommitEnd(pkt)
+}
+
+func (seg *NRSEGMENT) SetError(msg string) {
+  seg.ErrorMsg = msg
 }
 
 func NRTraceDaemon(nr *NRAPI) {

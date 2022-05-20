@@ -1,12 +1,13 @@
 package nrapi
 
 import (
+	"fmt"
 	"time"
 	"testing"
 )
 
 func TestNRAPI1(t *testing.T) {
-	nr := New("", "")
+	nr := New("", "", "")
 	nr.EventDelay = 1
 	nr.MetricDelay = 1
 	nr.LogDelay = 1
@@ -81,5 +82,17 @@ func TestNRAPI6(t *testing.T) {
 	time.Sleep(1*time.Second)
 	txn.End()
 	time.Sleep(5*time.Second)
+	nr.Close()
+}
+
+func TestNRAPI7(t *testing.T) {
+	nr, _ := Create()
+	nr.SetConsoleLog()
+	nr.EventDelay = 1
+	nr.MetricDelay = 1
+	nr.LogDelay = 1
+	nr.TraceDelay = 1
+	df, _ := DataFrame(nr.NRQL("SELECT * FROM NRAPI "))
+	fmt.Println(df.String())
 	nr.Close()
 }

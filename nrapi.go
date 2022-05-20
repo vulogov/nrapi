@@ -13,6 +13,7 @@ const MAXPIPECAP = 1000000
 
 type NRAPI struct {
   NRLicenseKey        string
+  NRAPIKey            string
   NRAccount           string
   ApplicationID       string
   ApplicationName     string
@@ -20,6 +21,7 @@ type NRAPI struct {
   EventURL            string
   LogURL              string
   TraceURL            string
+  GraphQLURL          string
   Logfilename         string
   EvtPipe             chan *gabs.Container
   MetricPipe          chan *gabs.Container
@@ -34,7 +36,7 @@ type NRAPI struct {
 }
 
 func Create() (*NRAPI, error) {
-  var account, license string
+  var account, license, api_key string
   var ok bool
 
   if account, ok = os.LookupEnv("NEWRELIC_ACCOUNT"); ! ok {
@@ -43,13 +45,17 @@ func Create() (*NRAPI, error) {
   if license, ok = os.LookupEnv("NEWRELIC_LICENSE_KEY"); ! ok {
     return nil, errors.New("NEWRELIC_LICENSE_KEY environment variable is not set")
   }
-  return New(account, license), nil
+  if api_key, ok = os.LookupEnv("NEWRELIC_API_KEY"); ! ok {
+    return nil, errors.New("NEWRELIC_LICENSE_KEY environment variable is not set")
+  }
+  return New(account, license, api_key), nil
 }
 
-func New(account string, license_key string) *NRAPI {
+func New(account string, license_key string, api_key string) *NRAPI {
   nr := new(NRAPI)
   nr.NRAccount     = account
   nr.NRLicenseKey  = license_key
+  nr.NRAPIKey      = api_key
   nr.EvtPipe       = make(chan *gabs.Container, MAXPIPECAP)
   nr.MetricPipe    = make(chan *gabs.Container, MAXPIPECAP)
   nr.TracePipe     = make(chan *gabs.Container, MAXPIPECAP)
@@ -63,6 +69,7 @@ func New(account string, license_key string) *NRAPI {
   nr.EventURL      = fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%v/events", account)
   nr.LogURL        = "https://log-api.newrelic.com/log/v1"
   nr.TraceURL      = "https://trace-api.newrelic.com/trace/v1"
+  nr.GraphQLURL    = "https://api.newrelic.com/graphql"
   nr.SetConsoleLog()
   go NRMetricDaemon(nr)
   go NREventDaemon(nr)

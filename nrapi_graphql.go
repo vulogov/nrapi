@@ -28,7 +28,7 @@ const NRQL_TPL = `
 
 func DataFrame(res *gabs.Container) (*dataframe.DataFrame, error) {
   if res == nil {
-    return nil, errors.New("Unknown dataser for loading ito DataFrame")
+    return nil, errors.New("Unknown dataset for loading ito DataFrame")
   }
   return imports.LoadFromJSON(context.TODO(), strings.NewReader(res.String()))
 }
